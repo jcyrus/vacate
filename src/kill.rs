@@ -40,7 +40,7 @@ pub fn send(pid: u32, signal: Signal) -> Result<()> {
         bail!("refusing to signal PID {pid}");
     }
     if pid == std::process::id() {
-        bail!("refusing to signal portkill itself");
+        bail!("refusing to signal vacate itself");
     }
 
     if unsafe { libc::kill(pid as libc::pid_t, signal.number()) } == 0 {

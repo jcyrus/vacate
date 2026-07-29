@@ -1,4 +1,4 @@
-//! Direct mode: `portkill 8080`. Inspect, confirm, terminate.
+//! Direct mode: `vacate 8080`. Inspect, confirm, terminate.
 
 use std::io::{self, IsTerminal, Write};
 

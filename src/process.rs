@@ -7,7 +7,7 @@ use std::ffi::CStr;
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "android")))]
 compile_error!(
-    "portkill supports macOS and Linux only — process lookup has no implementation for this target"
+    "vacate supports macOS and Linux only — process lookup has no implementation for this target"
 );
 
 /// What we can learn about a process that holds a socket.

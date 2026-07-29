@@ -55,10 +55,7 @@ fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
     };
 
     let left = Line::from(vec![
-        Span::styled(
-            " PORTKILL ",
-            Style::new().fg(Color::Black).bg(ACCENT).bold(),
-        ),
+        Span::styled(" VACATE ", Style::new().fg(Color::Black).bg(ACCENT).bold()),
         Span::styled(count, Style::new().dim()),
     ]);
 

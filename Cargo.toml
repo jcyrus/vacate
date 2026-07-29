@@ -1,12 +1,12 @@
 [package]
-name = "portkill"
+name = "vacate"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Find and kill whatever is squatting on a port. TUI + CLI, zero bloat."
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/jcyrus/portkill"
+repository = "https://github.com/jcyrus/vacate"
 keywords = ["port", "kill", "tui", "lsof", "process"]
 categories = ["command-line-utilities"]
 

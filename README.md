@@ -1,6 +1,8 @@
-# 🚫 `portkill`
+# 🚪 `vacate`
 
-> **The zero-bloat, lightning-fast Rust TUI for when you can never remember `lsof` syntax.**
+> **Something is squatting on your port. Make it vacate.**
+>
+> The zero-bloat, lightning-fast Rust TUI for when you can never remember `lsof` syntax.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Language: Rust](https://img.shields.io/badge/Language-Rust-orange.svg)](https://www.rust-lang.org/)
@@ -8,7 +10,7 @@
 
 ---
 
-## 💡 Why `portkill` Exists
+## 💡 Why `vacate` Exists
 
 I’ve been in tech for almost two decades. I’ve configured thousands of servers, deployed countless stacks, and built system architectures from scratch.
 
@@ -16,7 +18,7 @@ And yet, every single time a dev server crashes while holding onto port `8080`, 
 
 Is it `awk '{print $2}'`? Do I pipe it into `xargs kill -9`? What if it's on Linux and I need `netstat -tulpn` or `ss -tulpn`? Life is too short to memorize obscure terminal flags for the 500th time.
 
-So I built **`portkill`**:
+So I built **`vacate`**:
 
 - ⚡ **Instant (<5ms launch time)** because it’s compiled Rust, not Electron or Python.
 - 🪶 **Sub-5MB binary & zero memory bloat.**
@@ -34,14 +36,14 @@ When you already know which port is blocked:
 
 ```bash
 # Inspect & interactively kill whatever is on port 8080
-portkill 8080
+vacate 8080
 
 # Force kill immediately without prompt
-portkill 3000 --force
+vacate 3000 --force
 ```
 
 ```
-$ portkill 8080
+$ vacate 8080
 PORT   PROTO PID     PROCESS USER  MEMORY
 8080   TCP   39865   node    cyrus 42 M
 
@@ -63,16 +65,16 @@ Exit codes: `0` killed · `1` nothing on that port · `2` you said no ·
 Run it bare when you don't know which port you're looking for:
 
 ```bash
-portkill
+vacate
 ```
 
 ```
- PORTKILL  41 listening                                              v0.1.0
- PORT   PROTO PID      PROCESS                        USER      MEMORY
- 3306   TCP   1685     mysqld                         cyrus      7.2 M
-▌6379   TCP   1331     redis-server                   cyrus      1.4 M
- 11434  TCP   1626     ollama                         cyrus       12 M
- 18789  TCP   1328     node                           cyrus       32 M
+ VACATE  41 listening                                                v0.1.0
+ PORT   PROTO PID      PROCESS                      USER           MEMORY
+ 3306   TCP   1685     mysqld                       cyrus              7.2 M
+▌6379   TCP   1331     redis-server                 cyrus              1.4 M
+ 11434  TCP   1626     ollama                       cyrus               12 M
+ 18789  TCP   1328     node                         cyrus               32 M
  j/k move · / search · ⏎ SIGTERM · K SIGKILL · r refresh · q quit
 ```
 
@@ -99,20 +101,19 @@ bindings above; `Esc` clears it. `↑`/`↓` still aim while you type.
 ## 📦 Install
 
 ```bash
-cargo install --git https://github.com/jcyrus/portkill
+cargo install --git https://github.com/jcyrus/vacate
 ```
 
 Or from a clone:
 
 ```bash
 cargo install --path .          # into ~/.cargo/bin
-cargo build --release           # or just ./target/release/portkill
+cargo build --release           # or just ./target/release/vacate
 ```
 
 Requires Rust 1.88+. Linux and macOS.
 
-> Not on crates.io: the name `portkill` there belongs to an unrelated project,
-> so `cargo install portkill` would fetch someone else's tool, not this one.
+> Not published to crates.io yet, so install from git for now.
 
 ---
 
@@ -142,7 +143,7 @@ is exactly the fragility this exists to avoid. Instead:
 - **Process details** come straight from the OS: `proc_pidinfo` on macOS,
   `/proc/<pid>/status` on Linux. Only the PIDs that actually hold a socket get
   looked up, so there's no whole-system process scan to pay for.
-- **Killing** is a plain `kill(2)`, with guardrails: portkill refuses to signal
+- **Killing** is a plain `kill(2)`, with guardrails: vacate refuses to signal
   PID 0, PID 1, or itself.
 
 TCP sockets are listed only in the `LISTEN` state — an established connection
@@ -153,7 +154,7 @@ isn't what's holding your port. UDP sockets are listed when bound.
 Linux and macOS. Because a socket is tied back to its process through that
 process's open file descriptors, an unprivileged run mostly shows ports you
 own — other users' listeners may be missing entirely, or appear with `?` for
-name and user. Run `sudo portkill` to see the rest.
+name and user. Run `sudo vacate` to see the rest.
 
 ---
 

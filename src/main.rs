@@ -1,4 +1,4 @@
-//! portkill — find and kill whatever is squatting on a port.
+//! vacate — find and kill whatever is squatting on a port.
 
 mod cli;
 mod fuzzy;
@@ -14,7 +14,7 @@ use clap::Parser;
 
 #[derive(Parser)]
 #[command(
-    name = "portkill",
+    name = "vacate",
     version,
     about = "Find and kill whatever is squatting on a port.",
     after_help = "Run with no PORT to browse every listening port interactively."
@@ -44,7 +44,7 @@ fn main() -> ExitCode {
     match result {
         Ok(code) => ExitCode::from(code as u8),
         Err(err) => {
-            eprintln!("portkill: {err:#}");
+            eprintln!("vacate: {err:#}");
             ExitCode::FAILURE
         }
     }
