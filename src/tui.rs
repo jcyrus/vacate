@@ -44,8 +44,10 @@ impl App {
         app
     }
 
+    // `get` rather than indexing: a stale index should degrade to a missing
+    // row, never take down the whole TUI.
     pub fn visible(&self) -> impl Iterator<Item = &PortEntry> {
-        self.visible.iter().map(|&i| &self.entries[i])
+        self.visible.iter().filter_map(|&i| self.entries.get(i))
     }
 
     pub fn visible_count(&self) -> usize {
@@ -61,7 +63,9 @@ impl App {
     }
 
     pub fn selected_entry(&self) -> Option<&PortEntry> {
-        self.visible.get(self.selected).map(|&i| &self.entries[i])
+        self.visible
+            .get(self.selected)
+            .and_then(|&i| self.entries.get(i))
     }
 
     pub fn query(&self) -> &str {
@@ -77,10 +81,19 @@ impl App {
     }
 
     /// Re-rank `visible` against the current query, keeping the highlighted
-    /// row on the same process where possible.
+    /// row on the same process.
     fn apply_filter(&mut self) {
         let anchor = self.selected_entry().map(|e| (e.port, e.pid));
+        self.rebuild_visible(anchor);
+    }
 
+    /// Rebuild `visible` from `entries`, then put the cursor back on `anchor`
+    /// if that process is still listed.
+    ///
+    /// `anchor` is passed in rather than read here because [`Self::
+    /// replace_entries`] has to capture it *before* swapping `entries` out —
+    /// at that moment `visible` still holds indices into the previous vec.
+    fn rebuild_visible(&mut self, anchor: Option<(u16, u32)>) {
         let mut scored: Vec<(i32, usize)> = self
             .entries
             .iter()
@@ -98,7 +111,7 @@ impl App {
             .and_then(|key| {
                 self.visible
                     .iter()
-                    .position(|&i| (self.entries[i].port, self.entries[i].pid) == key)
+                    .position(|&i| self.entries.get(i).is_some_and(|e| (e.port, e.pid) == key))
             })
             .unwrap_or(0)
             .min(self.visible.len().saturating_sub(1));
@@ -106,12 +119,20 @@ impl App {
 
     pub fn refresh(&mut self) {
         match ports::scan() {
-            Ok(entries) => {
-                self.entries = entries;
-                self.apply_filter();
-            }
+            Ok(entries) => self.replace_entries(entries),
             Err(err) => self.status = Some(Status::Error(format!("Refresh failed: {err}"))),
         }
+    }
+
+    /// Swap in a fresh scan, holding the cursor on the same process.
+    ///
+    /// The new list can be shorter than the old one — every port may have gone
+    /// away since the last scan — so `visible` must be rebuilt from scratch
+    /// rather than reused.
+    fn replace_entries(&mut self, entries: Vec<PortEntry>) {
+        let anchor = self.selected_entry().map(|e| (e.port, e.pid));
+        self.entries = entries;
+        self.rebuild_visible(anchor);
     }
 
     fn move_selection(&mut self, delta: isize) {
@@ -386,6 +407,53 @@ mod tests {
         // Navigating an empty list must not panic.
         press(&mut app, KeyCode::Down);
         press(&mut app, KeyCode::Up);
+    }
+
+    // Regression: `visible` held indices into the *previous* `entries`, and
+    // the anchor lookup read them after the swap. On a machine where the new
+    // scan is shorter — a container with nothing listening, or simply killing
+    // the last process — that indexed off the end and panicked the whole TUI.
+    #[test]
+    fn refreshing_into_a_shorter_list_does_not_panic() {
+        let mut app = app();
+        press(&mut app, KeyCode::Char('G')); // select the last row
+
+        app.replace_entries(vec![]);
+        assert_eq!(app.visible_count(), 0);
+        assert_eq!(app.selected(), None);
+        assert!(app.selected_entry().is_none());
+        assert_eq!(app.visible().count(), 0);
+    }
+
+    #[test]
+    fn refreshing_keeps_the_cursor_on_the_surviving_process() {
+        let mut app = app();
+        press(&mut app, KeyCode::Char('j')); // postgres, pid 200
+        assert_eq!(app.selected_entry().unwrap().pid, 200);
+
+        // The other two processes exited; postgres moved to the front.
+        app.replace_entries(vec![entry(5432, 200, "postgres")]);
+        assert_eq!(app.visible_count(), 1);
+        assert_eq!(app.selected_entry().unwrap().pid, 200);
+    }
+
+    #[test]
+    fn refreshing_while_filtered_stays_consistent() {
+        let mut app = app();
+        press(&mut app, KeyCode::Char('/'));
+        type_query(&mut app, "postgres");
+
+        // Everything the filter matched is gone.
+        app.replace_entries(vec![entry(3000, 100, "node")]);
+        assert_eq!(app.total_count(), 1);
+        assert_eq!(app.selected(), None, "no match means nothing selected");
+
+        press(&mut app, KeyCode::Enter); // leaves search mode
+        press(&mut app, KeyCode::Enter); // now a kill, with nothing selected
+        assert!(
+            matches!(app.status(), Some(Status::Error(_))),
+            "killing with an empty list must report, not panic"
+        );
     }
 
     #[test]
