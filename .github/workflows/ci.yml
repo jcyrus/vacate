@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      # The discovery tests bind real sockets and read real process tables,
+      # so this is what actually proves the platform code works.
+      - name: Test
+        run: cargo test
+
+      - name: Release build
+        run: cargo build --release
+
+      - name: Smoke test
+        run: |
+          ./target/release/portkill --version
+          # Nothing should be listening here, so expect the "not found" code.
+          # `|| code=$?` keeps the non-zero exit from tripping `set -e`.
+          code=0
+          ./target/release/portkill 49999 < /dev/null || code=$?
+          test "$code" -eq 1

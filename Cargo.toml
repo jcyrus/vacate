@@ -1,0 +1,38 @@
+[package]
+name = "portkill"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Find and kill whatever is squatting on a port. TUI + CLI, zero bloat."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/jcyrus/portkill"
+keywords = ["port", "kill", "tui", "lsof", "process"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+anyhow = "1.0.104"
+libc = "0.2.189"
+netstat2 = "0.11.2"
+
+# Only the parsing we actually use: no color, no did-you-mean suggestions.
+clap = { version = "4.6.4", default-features = false, features = [
+    "std",
+    "derive",
+    "help",
+    "usage",
+    "error-context",
+] }
+
+# Crossterm backend only: no termion/termwiz/termina, no calendar widget.
+ratatui = { version = "0.30.2", default-features = false, features = [
+    "crossterm",
+    "layout-cache",
+] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
