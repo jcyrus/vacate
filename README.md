@@ -4,6 +4,8 @@
 >
 > The zero-bloat, lightning-fast Rust TUI for when you can never remember `lsof` syntax.
 
+[![crates.io](https://img.shields.io/crates/v/vacate.svg)](https://crates.io/crates/vacate)
+[![CI](https://github.com/jcyrus/vacate/actions/workflows/ci.yml/badge.svg)](https://github.com/jcyrus/vacate/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Language: Rust](https://img.shields.io/badge/Language-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Build: Zero Bloat](https://img.shields.io/badge/Bloat-Zero-brightgreen.svg)]()
@@ -101,19 +103,18 @@ bindings above; `Esc` clears it. `↑`/`↓` still aim while you type.
 ## 📦 Install
 
 ```bash
-cargo install --git https://github.com/jcyrus/vacate
+cargo install vacate
 ```
 
-Or from a clone:
+Or from source:
 
 ```bash
-cargo install --path .          # into ~/.cargo/bin
-cargo build --release           # or just ./target/release/vacate
+cargo install --git https://github.com/jcyrus/vacate   # latest main
+cargo install --path .                                 # from a clone
+cargo build --release                                  # ./target/release/vacate
 ```
 
 Requires Rust 1.88+. Linux and macOS.
-
-> Not published to crates.io yet, so install from git for now.
 
 ---
 
