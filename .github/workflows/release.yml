@@ -66,14 +66,15 @@ jobs:
     name: Trigger Homebrew tap update
     needs: build-and-release
     runs-on: ubuntu-latest
+    # Job-level env is visible to step `if:`; step-level env is not.
+    env:
+      TAP_TOKEN: ${{ secrets.TAP_UPDATE_TOKEN }}
     steps:
       - name: Dispatch update-formula to jcyrus/homebrew-tap
-        env:
-          TAP_TOKEN: ${{ secrets.TAP_UPDATE_TOKEN }}
         if: ${{ env.TAP_TOKEN != '' }}
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.TAP_UPDATE_TOKEN }}
+          token: ${{ env.TAP_TOKEN }}
           repository: jcyrus/homebrew-tap
           event-type: update-formula
           client-payload: '{"project": "vacate", "version": "${{ github.ref_name }}"}'
