@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # netstat2 runs bindgen, which needs libclang. macOS ships it with the
+      # Command Line Tools; the Linux runners need it installed.
+      - name: Install libclang (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang libclang-dev
+
+      - name: Build binary
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package
+        shell: bash
+        run: |
+          tar czf "vacate-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz" \
+            -C "target/${{ matrix.target }}/release" vacate
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          file="vacate-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz"
+          shasum -a 256 "$file" | awk '{print tolower($1) "  " $2}' > "$file.sha256"
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            vacate-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+            vacate-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256
+
+  notify-tap:
+    name: Trigger Homebrew tap update
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch update-formula to jcyrus/homebrew-tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_UPDATE_TOKEN }}
+        if: ${{ env.TAP_TOKEN != '' }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TAP_UPDATE_TOKEN }}
+          repository: jcyrus/homebrew-tap
+          event-type: update-formula
+          client-payload: '{"project": "vacate", "version": "${{ github.ref_name }}"}'
